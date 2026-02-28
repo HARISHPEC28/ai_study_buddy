@@ -9,9 +9,15 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-7y$q^a!(&@uuy992mtbt^!77=cj_$d2kvj5x+0pwn=4mou=pon")
-DEBUG = os.getenv("DEBUG", "False") == "True"  # False by default in production
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "ai-study-buddy-4-mj7c.onrender.com").split(",")
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-7y$q^a!(&@uuy992mtbt^!77=cj_$d2kvj5x+0pwn=4mou=pon"
+)
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")  # safer conversion
+
+# Hosts
+# Use comma-separated string in .env, e.g. "localhost,127.0.0.1,ai-study-buddy-4-mj7c.onrender.com"
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,ai-study-buddy-4-mj7c.onrender.com").split(",")
 
 # Groq API key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
