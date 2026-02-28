@@ -13,10 +13,11 @@ SECRET_KEY = os.getenv(
     "SECRET_KEY",
     "django-insecure-7y$q^a!(&@uuy992mtbt^!77=cj_$d2kvj5x+0pwn=4mou=pon"
 )
-DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")  # safer conversion
 
-# Hosts
-# Use comma-separated string in .env, e.g. "localhost,127.0.0.1,ai-study-buddy-4-mj7c.onrender.com"
+# DEBUG: True for local, False for production
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
+
+# Hosts: include localhost and Render domain(s)
 ALLOWED_HOSTS = os.getenv(
     "ALLOWED_HOSTS",
     "localhost,127.0.0.1,ai-study-buddy-4-mj7c.onrender.com"
@@ -90,9 +91,9 @@ USE_TZ = True
 
 # Static files
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"  # collectstatic will place files here
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Security settings for production
+# Security settings
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
