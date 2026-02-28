@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Study Buddy</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 40px;
+            transition: 0.3s;
+        }
+        .dark { background: #121212; color: white; }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        .dark .container { background: #1e1e1e; }
+        textarea { width: 100%; height: 120px; padding: 10px; font-size: 16px; }
+        select, button { padding: 10px; margin-top: 10px; font-size: 16px; }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eef1f5;
+            white-space: pre-wrap;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .dark .response { background: #333; }
+        ul { list-style: none; padding: 0; }
+        li {
+            background: #eef1f5;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .dark li { background: #333; }
+        .correct { color: green; font-weight: bold; }
+        .wrong { color: red; font-weight: bold; }
+
+        /* Flashcards */
+        .flashcards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .flashcard {
+            width: 100%;
+            max-width: 350px;
+            height: 180px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .flashcard:hover .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+        .flashcard-front { background: #eef1f5; color: #111; }
+        .flashcard-back { background: #4a90e2; color: #fff; transform: rotateY(180deg); }
+        .dark .flashcard-front { background: #333; color: #fff; }
+        .dark .flashcard-back { background: #1e90ff; color: #fff; }
+        @media(max-width: 768px) { .flashcard { max-width: 100%; } }
+    </style>
+</head>
+<body>
+
+<button onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+
+<div class="container">
+    <h1>🎓 AI Study Buddy</h1>
+
+    <!-- INPUT FORM -->
+    <form method="POST" id="main-form">
+        {% csrf_token %}
+        <textarea name="user_input" placeholder="Enter topic..." required>{{ user_input }}</textarea>
+        <select name="action" required>
+            <option value="explain" {% if request.POST.action == "explain" %}selected{% endif %}>Explain</option>
+            <option value="quiz" {% if request.POST.action == "quiz" %}selected{% endif %}>Quiz (5 MCQs)</option>
+            <option value="summarize" {% if request.POST.action == "summarize" %}selected{% endif %}>Summarize</option>
+            <option value="flashcards" {% if request.POST.action == "flashcards" %}selected{% endif %}>Flashcards</option>
+        </select>
+        <br>
+        <button type="submit">Generate</button>
+    </form>
+
+    <!-- EXPLAIN / SUMMARIZE RESPONSE -->
+    {% if response and not flashcards %}
+        <div class="response">{{ response }}</div>
+    {% endif %}
+
+    <!-- FLASHCARDS -->
+    {% if flashcards %}
+        <h3>📇 Flashcards</h3>
+        <div class="flashcards-container">
+            {% for card in flashcards %}
+                <div class="flashcard">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">Q: {{ card.question }}</div>
+                        <div class="flashcard-back">A: {{ card.answer }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- QUIZ FORM -->
+    {% if quiz and not quiz_results %}
+        <form method="POST" id="quiz-form">
+            {% csrf_token %}
+            <h3>📝 Quiz</h3>
+            {% for q in quiz %}
+                <p><strong>{{ forloop.counter }}. {{ q.question }}</strong></p>
+                {% for option in q.options %}
+                    <input type="radio" name="question_{{ forloop.parentloop.counter0 }}" value="{{ option }}" required> {{ option }} <br>
+                {% endfor %}
+                <br>
+            {% endfor %}
+            <input type="hidden" name="quiz_json" id="quiz_json_input">
+            <input type="hidden" name="user_input" value="{{ user_input }}">
+            <input type="hidden" name="submit_quiz" value="true">
+            {{ quiz|json_script:"quiz-data" }}
+            <button type="submit">Submit Quiz</button>
+        </form>
+    {% endif %}
+
+    <!-- QUIZ RESULTS -->
+    {% if quiz_results %}
+        <h3>🎯 Quiz Results</h3>
+        <ul>
+            {% for r in quiz_results %}
+                <li>
+                    <strong>Q{{ forloop.counter }}: {{ r.question }}</strong><br>
+                    Your answer: <span class="{% if r.is_correct %}correct{% else %}wrong{% endif %}">{{ r.user_answer }}</span><br>
+                    Correct answer: {{ r.correct_answer }}<br>
+                    {% if r.is_correct %}✅ Correct (+5){% else %}❌ Wrong (+0){% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+        <h3>Total Score: {{ score }} / 25</h3>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Fill hidden quiz input before submitting
+    const quizForm = document.getElementById("quiz-form");
+    const quizDataScript = document.getElementById("quiz-data");
+    const quizInput = document.getElementById("quiz_json_input");
+    if (quizForm && quizDataScript && quizInput) {
+        quizForm.addEventListener("submit", function() {
+            quizInput.value = quizDataScript.textContent.trim();
+        });
+    }
+});
+
+function toggleDarkMode() {
+    document.body.classList.toggle("dark");
+}
+</script>
+
+</body>
+</html>
