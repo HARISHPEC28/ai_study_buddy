@@ -17,7 +17,10 @@ DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")  # safer con
 
 # Hosts
 # Use comma-separated string in .env, e.g. "localhost,127.0.0.1,ai-study-buddy-4-mj7c.onrender.com"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,ai-study-buddy-4-mj7c.onrender.com").split(",")
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,ai-study-buddy-4-mj7c.onrender.com"
+).split(",")
 
 # Groq API key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -88,6 +91,11 @@ USE_TZ = True
 # Static files
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"  # collectstatic will place files here
+
+# Security settings for production
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
